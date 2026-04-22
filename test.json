@@ -1,0 +1,6 @@
+{
+  "url": "https://demoqa.com/webtables",
+  "steps": [
+    { "action": "click", "selector": "#addNewRecordButton" }
+  ]
+}
