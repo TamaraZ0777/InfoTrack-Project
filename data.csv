@@ -1,5 +1,7 @@
 FirstName,LastName,Email,Age,Salary,Department,UpdatedSalary
 Bad,User,wrong-email,abc,2000,IT,3000
 Anna,Brown,anna.brown@test.com,28,4500,HR,7000
-Mat,Green-Yellow,mat.green-yellow@test.com,17,100,Billing,10$
+Mat,Salary-Update Fails,mat.no_salary_update@test.com,17,100,Billing,10$
 John,Smith,john.smith@test.com,30,5000,QA,6500
+Tom,No-New-Salary,tom_nns@test.com,34,455,#1,,
+Tammy,Hilfiger,tammyh@test.com,100,5,HR,50

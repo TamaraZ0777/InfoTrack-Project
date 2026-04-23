@@ -15,14 +15,14 @@ public class TableHelper
         return _driver.FindElement(By.TagName("body")).Text;
     }
 
-    public bool IsRowPresent(string firstName, string lastName)
+    private bool IsRowPresent(string firstName, string lastName)
     {
         string pageText = GetPageText();
 
         return pageText.Contains(firstName) && pageText.Contains(lastName);
     }
 
-    public bool IsUpdatedRowPresent(string firstName, string lastName, string salary)
+    private bool IsRowPresent(string firstName, string lastName, string salary)
     {
         string pageText = GetPageText();
 
@@ -31,21 +31,21 @@ public class TableHelper
             && pageText.Contains(salary);
     }
 
-    public void WaitForRow(string firstName, string lastName, int timeoutSeconds = 10)
+    public void WaitForTableRowData(string firstName, string lastName, int timeoutSeconds = 10)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
 
         wait.Until(driver => IsRowPresent(firstName, lastName));
     }
 
-    public void WaitForUpdatedRow(string firstName, string lastName, string salary, int timeoutSeconds = 10)
+    public void WaitForTableRowData(string firstName, string lastName, string salary, int timeoutSeconds = 10)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
 
-        wait.Until(driver => IsUpdatedRowPresent(firstName, lastName, salary));
+        wait.Until(driver => IsRowPresent(firstName, lastName, salary));
     }
 
-    public void WaitForRowDeletion(string firstName, string lastName, int timeoutSeconds = 10)
+    public void WaitForTableRowDeletion(string firstName, string lastName, int timeoutSeconds = 10)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
 
