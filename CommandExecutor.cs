@@ -120,4 +120,47 @@ public class CommandExecutor
             return modals.Count == 0 || !modals[0].Displayed;
         });
     }
+
+    public void ClickEditButton(string firstName, string lastName)
+    {
+        object? result = ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            const buttons = Array.from(document.querySelectorAll('[id^=""edit-record-""]'))
+                .filter(btn => btn.offsetParent !== null);
+
+            if (buttons.length === 0) {
+                return false;
+            }
+
+            buttons[buttons.length - 1].click();
+            return true;
+        ");
+
+        bool clicked = result is bool b && b;
+
+        if (!clicked)
+        {
+            throw new Exception($"Edit button not found for row: {firstName} {lastName}");
+        }
+    }
+    public void ClickDeleteButton(string firstName, string lastName)
+    {
+        object? result = ((IJavaScriptExecutor)_driver).ExecuteScript(@"
+            const buttons = Array.from(document.querySelectorAll('[id^=""delete-record-""]'))
+                .filter(btn => btn.offsetParent !== null);
+
+            if (buttons.length === 0) {
+                return false;
+            }
+
+            buttons[buttons.length - 1].click();
+            return true;
+        ");
+
+        bool clicked = result is bool b && b;
+
+        if (!clicked)
+        {
+            throw new Exception($"Delete button not found for row: {firstName} {lastName}");
+        }
+    }
 }

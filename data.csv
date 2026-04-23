@@ -1,4 +1,5 @@
 FirstName,LastName,Email,Age,Salary,Department,UpdatedSalary
 Bad,User,wrong-email,abc,2000,IT,3000
-John,Smith,john.smith@test.com,30,5000,QA,6500
 Anna,Brown,anna.brown@test.com,28,4500,HR,7000
+Mat,Green-Yellow,mat.green-yellow@test.com,17,100,Billing,10$
+John,Smith,john.smith@test.com,30,5000,QA,6500

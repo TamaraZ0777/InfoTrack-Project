@@ -25,10 +25,6 @@ class Program
             throw new Exception("No records found in data.csv");
         }
 
-        var record = records[0];
-
-        //Creating a screenshot folder
-
         string projectRoot = AppDomain.CurrentDomain.BaseDirectory;
         string screenshotsRoot = Path.GetFullPath(
             Path.Combine(projectRoot, @"..\..\..\Screenshots")
@@ -42,6 +38,8 @@ class Program
             Directory.CreateDirectory(screenshotsDir);
         }
 
+        Console.WriteLine($"Screenshots folder: {screenshotsDir}");
+
         IWebDriver driver = new ChromeDriver();
 
         try
@@ -49,59 +47,125 @@ class Program
             driver.Navigate().GoToUrl(scenario.Url);
 
             var executor = new CommandExecutor(driver);
+            var tableHelper = new TableHelper(driver);
 
-            // Step 1: click Add
-            //executor.ExecuteStep(new Step
-            //{
-                //Action = "click",
-                //Selector = "#addNewRecordButton"
-            //});
-            executor.OpenAddRecordModal();
-
-            Thread.Sleep(1500);
-            SaveScreenshot(driver, screenshotsDir, "01_add_clicked");
-
-            // Step 2: fill modal from first CSV row
-            executor.FillRegistrationForm(record);
-
-            Thread.Sleep(1000);
-            SaveScreenshot(driver, screenshotsDir, "02_form_filled");
-
-            // Step 3: submit
-            executor.SubmitRegistrationForm();
-
-            Thread.Sleep(1500);
-            SaveScreenshot(driver, screenshotsDir, "03_form_submitted");
-
-            //The part below is for testing one row. Update after testing finished
-
-            if (executor.IsRegistrationModalOpen() && executor.HasInvalidFields())
+            foreach (var record in records)
             {
-                SaveScreenshot(driver, screenshotsDir, "04_invalid_fields_review_needed");
+                Console.WriteLine($"Processing record: {record.FirstName} {record.LastName}");
+
+                executor.OpenAddRecordModal();
+                SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
+
+                executor.FillRegistrationForm(record);
+                SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
+
+                executor.SubmitRegistrationForm();
+                Console.WriteLine("Current URL after submit: " + driver.Url);
+                Console.WriteLine("Current page title after submit: " + driver.Title);
+                Thread.Sleep(2000);
+                SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
+
+                if (executor.IsRegistrationModalOpen() && executor.HasInvalidFields())
+                {
+                    SaveScreenshot(driver, screenshotsDir, $"04_invalid_fields_review_needed_{record.FirstName}_{record.LastName}");
+
+                    Console.WriteLine(
+                        $"Record for {record.FirstName} {record.LastName} needs to be reviewed."
+                    );
+
+                    try
+                    {
+                        executor.CloseRegistrationForm();
+                        SaveScreenshot(driver, screenshotsDir, $"05_modal_closed_after_invalid_{record.FirstName}_{record.LastName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Could not close modal: {ex.Message}");
+                    }
+
+                    continue;
+                }
+
+                Console.WriteLine($"Looking for row: {record.FirstName} {record.LastName}");
+                Thread.Sleep(3000);
+
+                tableHelper.PrintCurrentPageText();
+                tableHelper.WaitForRow(record.FirstName, record.LastName);
+
+                SaveScreenshot(driver, screenshotsDir, $"06_row_added_{record.FirstName}_{record.LastName}");
 
                 Console.WriteLine(
-                    $"Record for {record.FirstName} {record.LastName} needs to be reviewed."
+                    $"Row for {record.FirstName} {record.LastName} was added successfully."
                 );
 
-                try
+                // EDIT FLOW
+                executor.ClickEditButton(record.FirstName, record.LastName);
+                Thread.Sleep(1500);
+                SaveScreenshot(driver, screenshotsDir, $"07_edit_clicked_{record.FirstName}_{record.LastName}");
+
+                executor.FillRegistrationForm(new PersonRecord
                 {
-                    executor.CloseRegistrationForm();
-                    SaveScreenshot(driver, screenshotsDir, "05_modal_closed_after_invalid");
-                }
-                catch (Exception ex)
+                    FirstName = record.FirstName,
+                    LastName = record.LastName,
+                    Email = record.Email,
+                    Age = record.Age,
+                    Salary = record.UpdatedSalary,
+                    Department = record.Department
+                });
+
+                SaveScreenshot(driver, screenshotsDir, $"08_salary_updated_{record.FirstName}_{record.LastName}");
+
+                executor.SubmitRegistrationForm();
+                Thread.Sleep(2000);
+                SaveScreenshot(driver, screenshotsDir, $"09_edit_submitted_{record.FirstName}_{record.LastName}");
+
+                if (executor.IsRegistrationModalOpen() && executor.HasInvalidFields())
                 {
-                    Console.WriteLine($"Could not close modal: {ex.Message}");
+                    SaveScreenshot(driver, screenshotsDir, $"13_invalid_edit_review_needed_{record.FirstName}_{record.LastName}");
+
+                    Console.WriteLine(
+                        $"Updated values for {record.FirstName} {record.LastName} need to be reviewed."
+                    );
+
+                    try
+                    {
+                        executor.CloseRegistrationForm();
+                        SaveScreenshot(driver, screenshotsDir, $"11_modal_closed_after_invalid_edit_{record.FirstName}_{record.LastName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Could not close modal after invalid edit: {ex.Message}");
+                    }
+
+                    continue;
                 }
-            }
-            else
-            {
+
+                tableHelper.WaitForUpdatedRow(record.FirstName, record.LastName, record.UpdatedSalary);
+
+                SaveScreenshot(driver, screenshotsDir, $"12_row_updated_{record.FirstName}_{record.LastName}");
+
                 Console.WriteLine(
-                    $"Record for {record.FirstName} {record.LastName} submitted successfully."
+                    $"Row for {record.FirstName} {record.LastName} was updated successfully."
+                );
+
+                // DELETE FLOW
+                executor.ClickDeleteButton(record.FirstName, record.LastName);
+                Thread.Sleep(1500);
+
+                tableHelper.WaitForRowDeletion(record.FirstName, record.LastName);
+
+                // small extra delay so UI fully refreshes before screenshot
+                Thread.Sleep(1500);
+
+                tableHelper.PrintCurrentPageText();
+                SaveScreenshot(driver, screenshotsDir, $"10_row_deleted_{record.FirstName}_{record.LastName}");
+
+                Console.WriteLine(
+                    $"Row for {record.FirstName} {record.LastName} was deleted successfully."
                 );
             }
 
-            Console.WriteLine($"Submitted record: {record.FirstName} {record.LastName}");
-
+            Console.WriteLine("Processing finished.");
             Console.WriteLine("Press ENTER to close browser...");
             Console.ReadLine();
         }
