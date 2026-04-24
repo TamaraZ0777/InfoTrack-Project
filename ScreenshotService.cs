@@ -23,7 +23,7 @@ public static class ScreenshotService
         Thread.Sleep(1500);
 
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-        string fullPath = Path.Combine(folderPath, $"{fileName}_{timestamp}.png");
+        string fullPath = Path.Combine(folderPath, $"{timestamp}_{fileName}.png");
 
         var screenshot = ((ITakesScreenshot)driver).GetScreenshot();
         screenshot.SaveAsFile(fullPath);
