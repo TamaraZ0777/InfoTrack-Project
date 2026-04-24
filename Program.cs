@@ -49,129 +49,29 @@ class Program
             var executor = new CommandExecutor(driver);
             var tableHelper = new TableHelper(driver);
 
+            int successfulRecords = 0;
+            int reviewRecords = 0;
+
             foreach (var record in records)
             {
-                Console.WriteLine($"Processing record: {record.FirstName} {record.LastName}");
+                bool success = ProcessRecord(driver, executor, tableHelper, screenshotsDir, record);
 
-                executor.OpenAddRecordModal();
-                SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
-
-                executor.FillRegistrationForm(record);
-                SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
-
-                executor.SubmitRegistrationForm();
-                Console.WriteLine("Current URL after submit: " + driver.Url);
-                Console.WriteLine("Current page title after submit: " + driver.Title);
-                Thread.Sleep(2000);
-                SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
-
-                if (HasInvalidForm(executor))
+                if (success)
                 {
-                    HandleInvalidForm(
-                        executor,
-                        driver,
-                        screenshotsDir,
-                        record,
-                        "04_invalid_add",
-                        $"Record for {record.FirstName} {record.LastName} needs to be reviewed."
-                    );
-
-                    continue;
+                    successfulRecords++;
                 }
-
-                Console.WriteLine($"Looking for row: {record.FirstName} {record.LastName}");
-                Thread.Sleep(3000);
-
-                tableHelper.PrintCurrentPageText();
-                tableHelper.WaitForTableRowData(record.FirstName, record.LastName);
-
-                SaveScreenshot(driver, screenshotsDir, $"06_row_added_{record.FirstName}_{record.LastName}");
-
-                Console.WriteLine(
-                    $"Row for {record.FirstName} {record.LastName} was added successfully."
-                );
-
-                // EDIT FLOW
-                executor.ClickEditButton(record.FirstName, record.LastName);
-                Thread.Sleep(1500);
-                SaveScreenshot(driver, screenshotsDir, $"07_edit_clicked_{record.FirstName}_{record.LastName}");
-
-                executor.FillRegistrationForm(new PersonRecord
+                else
                 {
-                    FirstName = record.FirstName,
-                    LastName = record.LastName,
-                    Email = record.Email,
-                    Age = record.Age,
-                    Salary = record.UpdatedSalary,
-                    Department = record.Department
-                });
-
-                SaveScreenshot(driver, screenshotsDir, $"08_salary_updated_{record.FirstName}_{record.LastName}");
-
-                executor.SubmitRegistrationForm();
-                Thread.Sleep(2000);
-                SaveScreenshot(driver, screenshotsDir, $"09_edit_submitted_{record.FirstName}_{record.LastName}");
-
-                if (HasInvalidForm(executor))
-                {
-                    HandleInvalidForm(
-                        executor,
-                        driver,
-                        screenshotsDir,
-                        record,
-                        "10_invalid_edit",
-                        $"Updated values for {record.FirstName} {record.LastName} need to be reviewed."
-                    );
-
-                    // cleanup: delete the row that was added before the failed edit
-                    try
-                    {
-                        Console.WriteLine($"Cleaning up added row after failed edit: {record.FirstName} {record.LastName}");
-
-                        executor.ClickDeleteButton(record.FirstName, record.LastName);
-                        Thread.Sleep(1500);
-
-                        tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
-                        Thread.Sleep(1500);
-
-                        SaveScreenshot(driver, screenshotsDir, $"12_cleanup_deleted_after_invalid_edit_{record.FirstName}_{record.LastName}");
-
-                        Console.WriteLine(
-                            $"Cleanup completed for {record.FirstName} {record.LastName}."
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Could not clean up row after invalid edit: {ex.Message}");
-                    }
-
-                    continue;
+                    reviewRecords++;
                 }
-
-                tableHelper.WaitForTableRowData(record.FirstName, record.LastName, record.UpdatedSalary);
-
-                SaveScreenshot(driver, screenshotsDir, $"12_row_updated_{record.FirstName}_{record.LastName}");
-
-                Console.WriteLine(
-                    $"Row for {record.FirstName} {record.LastName} was updated successfully."
-                );
-
-                // DELETE FLOW
-                executor.ClickDeleteButton(record.FirstName, record.LastName);
-                Thread.Sleep(1500);
-
-                tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
-
-                // small extra delay so UI fully refreshes before screenshot
-                Thread.Sleep(1500);
-
-                tableHelper.PrintCurrentPageText();
-                SaveScreenshot(driver, screenshotsDir, $"10_row_deleted_{record.FirstName}_{record.LastName}");
-
-                Console.WriteLine(
-                    $"Row for {record.FirstName} {record.LastName} was deleted successfully."
-                );
             }
+            //Execution Summary Creation
+            Console.WriteLine();
+            Console.WriteLine("Run summary:");
+            Console.WriteLine($"Total records: {records.Count}");
+            Console.WriteLine($"Successful records: {successfulRecords}");
+            Console.WriteLine($"Records needing review: {reviewRecords}");
+            Console.WriteLine($"Screenshots folder: {screenshotsDir}");
 
             Console.WriteLine("Processing finished.");
             Console.WriteLine("Press ENTER to close browser...");
@@ -181,6 +81,132 @@ class Program
         {
             driver.Quit();
         }
+    }
+
+    static bool ProcessRecord(
+        IWebDriver driver,
+        CommandExecutor executor,
+        TableHelper tableHelper,
+        string screenshotsDir,
+        PersonRecord record)
+    {
+        Console.WriteLine($"Processing record: {record.FirstName} {record.LastName}");
+
+        bool addSuccess = AddRecordFlow(driver, executor, tableHelper, screenshotsDir, record);
+
+        if (!addSuccess)
+        {
+            return false;
+        }
+
+        return EditAndDeleteFlow(driver, executor, tableHelper, screenshotsDir, record);
+    }
+
+    static bool AddRecordFlow(
+        IWebDriver driver,
+        CommandExecutor executor,
+        TableHelper tableHelper,
+        string screenshotsDir,
+        PersonRecord record)
+    {
+        executor.OpenAddRecordModal();
+        SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
+
+        executor.FillRegistrationForm(record);
+        SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
+
+        executor.SubmitRegistrationForm();
+        Thread.Sleep(2000);
+
+        SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
+
+        if (HasInvalidForm(executor))
+        {
+            HandleInvalidForm(
+                executor,
+                driver,
+                screenshotsDir,
+                record,
+                "04_invalid_add",
+                $"Record for {record.FirstName} {record.LastName} needs to be reviewed."
+            );
+
+            return false;
+        }
+
+        tableHelper.WaitForTableRowData(record.FirstName, record.LastName);
+
+        SaveScreenshot(driver, screenshotsDir, $"06_row_added_{record.FirstName}_{record.LastName}");
+
+        Console.WriteLine($"Row for {record.FirstName} {record.LastName} was added successfully.");
+
+        return true;
+    }
+
+    static bool EditAndDeleteFlow(
+        IWebDriver driver,
+        CommandExecutor executor,
+        TableHelper tableHelper,
+        string screenshotsDir,
+        PersonRecord record)
+    {
+        Console.WriteLine($"Trying to click Edit for: {record.FirstName} {record.LastName}");
+
+        executor.ClickEditButton(record.FirstName, record.LastName);
+        Thread.Sleep(1500);
+
+        SaveScreenshot(driver, screenshotsDir, $"07_edit_clicked_{record.FirstName}_{record.LastName}");
+
+        executor.FillRegistrationForm(new PersonRecord
+        {
+            FirstName = record.FirstName,
+            LastName = record.LastName,
+            Email = record.Email,
+            Age = record.Age,
+            Salary = record.UpdatedSalary,
+            Department = record.Department
+        });
+
+        SaveScreenshot(driver, screenshotsDir, $"08_salary_updated_{record.FirstName}_{record.LastName}");
+
+        executor.SubmitRegistrationForm();
+        Thread.Sleep(2000);
+
+        SaveScreenshot(driver, screenshotsDir, $"09_edit_submitted_{record.FirstName}_{record.LastName}");
+
+        if (HasInvalidForm(executor))
+        {
+            HandleInvalidForm(
+                executor,
+                driver,
+                screenshotsDir,
+                record,
+                "10_invalid_edit",
+                $"Updated values for {record.FirstName} {record.LastName} need to be reviewed."
+            );
+
+            CleanupAfterFailedEdit(driver, executor, tableHelper, screenshotsDir, record);
+            return false;
+        }
+
+        tableHelper.WaitForTableRowData(record.FirstName, record.LastName, record.UpdatedSalary);
+
+        SaveScreenshot(driver, screenshotsDir, $"12_row_updated_{record.FirstName}_{record.LastName}");
+
+        Console.WriteLine($"Row for {record.FirstName} {record.LastName} was updated successfully.");
+
+        // DELETE
+        executor.ClickDeleteButton(record.FirstName, record.LastName);
+        Thread.Sleep(1500);
+
+        tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
+        Thread.Sleep(1500);
+
+        SaveScreenshot(driver, screenshotsDir, $"13_row_deleted_{record.FirstName}_{record.LastName}");
+
+        Console.WriteLine($"Row for {record.FirstName} {record.LastName} was deleted successfully.");
+
+        return true;
     }
 
     static bool HasInvalidForm(CommandExecutor executor)
@@ -223,5 +249,32 @@ class Program
         screenshot.SaveAsFile(fullPath);
 
         Console.WriteLine($"Screenshot saved: {fullPath}");
+    }
+
+    static void CleanupAfterFailedEdit(
+        IWebDriver driver,
+        CommandExecutor executor,
+        TableHelper tableHelper,
+        string screenshotsDir,
+        PersonRecord record)
+    {
+        try
+        {
+            Console.WriteLine($"Cleaning up row after failed edit: {record.FirstName} {record.LastName}");
+
+            executor.ClickDeleteButton(record.FirstName, record.LastName);
+            Thread.Sleep(1500);
+
+            tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
+            Thread.Sleep(1500);
+
+            SaveScreenshot(driver, screenshotsDir, $"11_cleanup_deleted_{record.FirstName}_{record.LastName}");
+
+            Console.WriteLine($"Cleanup completed for {record.FirstName} {record.LastName}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Cleanup failed: {ex.Message}");
+        }
     }
 }
