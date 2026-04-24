@@ -1,6 +1,7 @@
 public class TestScenario
 {
     public string Url { get; set; } = string.Empty;
+    public string DataFile { get; set; } = string.Empty;
     public List<Step> Steps { get; set; } = new();
 }
 

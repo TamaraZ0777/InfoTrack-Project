@@ -45,6 +45,17 @@ public class TableHelper
         wait.Until(driver => IsRowPresent(firstName, lastName, salary));
     }
 
+    public bool IsTableRowDataPresent(string firstName, string lastName)
+    {
+        return IsRowPresent(firstName, lastName);
+    }
+
+    public bool IsTableRowDataPresent(string firstName, string lastName, string salary)
+    {
+        return IsRowPresent(firstName, lastName, salary);
+    }
+
+
     public void WaitForTableRowDeletion(string firstName, string lastName, int timeoutSeconds = 10)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
@@ -56,5 +67,5 @@ public class TableHelper
     {
         Console.WriteLine("Current page text:");
         Console.WriteLine(GetPageText());
-    }
+    }    
 }

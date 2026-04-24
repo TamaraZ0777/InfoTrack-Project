@@ -18,7 +18,7 @@ class Program
             throw new Exception("Failed to deserialize test.json");
         }
 
-        var records = CsvReader.ReadData("data.csv");
+        var records = CsvReader.ReadData(scenario.DataFile);
 
         if (records.Count == 0)
         {
@@ -44,7 +44,7 @@ class Program
 
             foreach (var record in records)
             {
-                bool success = ProcessRecord(driver, executor, tableHelper, screenshotsDir, record);
+                bool success = ProcessRecord(driver, executor, tableHelper, screenshotsDir, record, scenario);
 
                 if (success)
                 {
@@ -73,23 +73,159 @@ class Program
         }
     }
 
-    static bool ProcessRecord(
+    static bool ExecuteScenarioStep(
+        string action,
         IWebDriver driver,
         CommandExecutor executor,
         TableHelper tableHelper,
         string screenshotsDir,
         PersonRecord record)
     {
+        switch (action)
+        {
+            case "addRecord":
+                executor.OpenAddRecordModal();
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
+
+                executor.FillRegistrationForm(record);
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
+
+                executor.SubmitRegistrationForm();
+                Thread.Sleep(2000);
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
+
+                if (HasInvalidForm(executor))
+                {
+                    HandleInvalidForm(
+                        executor,
+                        driver,
+                        screenshotsDir,
+                        record,
+                        "04_invalid_add",
+                        $"Record for {record.FirstName} {record.LastName} needs to be reviewed."
+                    );
+
+                    return false;
+                }
+
+                return true;
+
+            case "waitForTableRowData":
+                tableHelper.WaitForTableRowData(record.FirstName, record.LastName);
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"05_wait_row_data_{record.FirstName}_{record.LastName}");
+                return true;
+
+            case "verifyInsertedRow":
+                if (!tableHelper.IsTableRowDataPresent(record.FirstName, record.LastName))
+                {
+                    throw new Exception($"Inserted row was not found: {record.FirstName} {record.LastName}");
+                }
+
+                Console.WriteLine($"Inserted row verified: {record.FirstName} {record.LastName}");
+                return true;
+
+            case "editSalary":
+                Console.WriteLine($"Trying to click Edit for: {record.FirstName} {record.LastName}");
+
+                executor.ClickEditButton(record.FirstName, record.LastName);
+                Thread.Sleep(1500);
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"06_edit_clicked_{record.FirstName}_{record.LastName}");
+
+                executor.FillRegistrationForm(new PersonRecord
+                {
+                    FirstName = record.FirstName,
+                    LastName = record.LastName,
+                    Email = record.Email,
+                    Age = record.Age,
+                    Salary = record.UpdatedSalary,
+                    Department = record.Department
+                });
+
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"07_salary_updated_{record.FirstName}_{record.LastName}");
+
+                executor.SubmitRegistrationForm();
+                Thread.Sleep(2000);
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"08_edit_submitted_{record.FirstName}_{record.LastName}");
+
+                if (HasInvalidForm(executor))
+                {
+                    HandleInvalidForm(
+                        executor,
+                        driver,
+                        screenshotsDir,
+                        record,
+                        "09_invalid_edit",
+                        $"Updated values for {record.FirstName} {record.LastName} need to be reviewed."
+                    );
+
+                    CleanupAfterFailedEdit(driver, executor, tableHelper, screenshotsDir, record);
+                    return false;
+                }
+
+                return true;
+
+            case "verifyUpdatedSalary":
+                if (!tableHelper.IsTableRowDataPresent(record.FirstName, record.LastName, record.UpdatedSalary))
+                {
+                    throw new Exception($"Updated salary was not found for {record.FirstName} {record.LastName}");
+                }
+
+                Console.WriteLine($"Updated salary verified for: {record.FirstName} {record.LastName}");
+                return true;
+
+            case "deleteRow":
+                executor.ClickDeleteButton(record.FirstName, record.LastName);
+                Thread.Sleep(1500);
+                return true;
+
+            case "waitForTableRowDeletion":
+                tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
+                Thread.Sleep(1500);
+                ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"10_row_deleted_{record.FirstName}_{record.LastName}");
+                return true;
+
+            case "verifyRowDeleted":
+                if (tableHelper.IsTableRowDataPresent(record.FirstName, record.LastName))
+                {
+                    throw new Exception($"Row was not deleted: {record.FirstName} {record.LastName}");
+                }
+
+                Console.WriteLine($"Row deleted verified: {record.FirstName} {record.LastName}");
+                return true;
+
+            default:
+                throw new Exception($"Unknown JSON action: {action}");
+        }
+    }
+
+    static bool ProcessRecord(
+        IWebDriver driver,
+        CommandExecutor executor,
+        TableHelper tableHelper,
+        string screenshotsDir,
+        PersonRecord record,
+        TestScenario scenario)
+    {
         Console.WriteLine($"Processing record: {record.FirstName} {record.LastName}");
 
-        bool addSuccess = AddRecordFlow(driver, executor, tableHelper, screenshotsDir, record);
-
-        if (!addSuccess)
+        foreach (var step in scenario.Steps)
         {
-            return false;
+            bool shouldContinue = ExecuteScenarioStep(
+                step.Action,
+                driver,
+                executor,
+                tableHelper,
+                screenshotsDir,
+                record
+            );
+
+            if (!shouldContinue)
+            {
+                return false;
+            }
         }
 
-        return EditAndDeleteFlow(driver, executor, tableHelper, screenshotsDir, record);
+        return true;
     }
 
     static bool AddRecordFlow(

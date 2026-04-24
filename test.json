@@ -1,6 +1,15 @@
 {
   "url": "https://demoqa.com/webtables",
+  "dataFile": "data.csv",
   "steps": [
-    { "action": "click", "selector": "#addNewRecordButton" }
+    { "action": "addRecord" },
+    { "action": "waitForTableRowData" },
+    { "action": "verifyInsertedRow" },
+    { "action": "editSalary" },
+    { "action": "waitForTableRowData" },
+    { "action": "verifyUpdatedSalary" },
+    { "action": "deleteRow" },
+    { "action": "waitForTableRowDeletion" },
+    { "action": "verifyRowDeleted" }
   ]
 }
