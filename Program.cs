@@ -25,20 +25,10 @@ class Program
             throw new Exception("No records found in data.csv");
         }
 
-        string projectRoot = AppDomain.CurrentDomain.BaseDirectory;
-        string screenshotsRoot = Path.GetFullPath(
-            Path.Combine(projectRoot, @"..\..\..\Screenshots")
-        );
-
-        string runFolderName = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string screenshotsDir = Path.Combine(screenshotsRoot, runFolderName);
-
-        if (!Directory.Exists(screenshotsDir))
-        {
-            Directory.CreateDirectory(screenshotsDir);
-        }
-
+        //Screenshot Folder creation
+        string screenshotsDir = ScreenshotService.CreateRunFolder();
         Console.WriteLine($"Screenshots folder: {screenshotsDir}");
+
 
         IWebDriver driver = new ChromeDriver();
 
@@ -110,15 +100,15 @@ class Program
         PersonRecord record)
     {
         executor.OpenAddRecordModal();
-        SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
 
         executor.FillRegistrationForm(record);
-        SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
 
         executor.SubmitRegistrationForm();
         Thread.Sleep(2000);
 
-        SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
 
         if (HasInvalidForm(executor))
         {
@@ -136,7 +126,7 @@ class Program
 
         tableHelper.WaitForTableRowData(record.FirstName, record.LastName);
 
-        SaveScreenshot(driver, screenshotsDir, $"06_row_added_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"06_row_added_{record.FirstName}_{record.LastName}");
 
         Console.WriteLine($"Row for {record.FirstName} {record.LastName} was added successfully.");
 
@@ -155,7 +145,7 @@ class Program
         executor.ClickEditButton(record.FirstName, record.LastName);
         Thread.Sleep(1500);
 
-        SaveScreenshot(driver, screenshotsDir, $"07_edit_clicked_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"07_edit_clicked_{record.FirstName}_{record.LastName}");
 
         executor.FillRegistrationForm(new PersonRecord
         {
@@ -167,12 +157,12 @@ class Program
             Department = record.Department
         });
 
-        SaveScreenshot(driver, screenshotsDir, $"08_salary_updated_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"08_salary_updated_{record.FirstName}_{record.LastName}");
 
         executor.SubmitRegistrationForm();
         Thread.Sleep(2000);
 
-        SaveScreenshot(driver, screenshotsDir, $"09_edit_submitted_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"09_edit_submitted_{record.FirstName}_{record.LastName}");
 
         if (HasInvalidForm(executor))
         {
@@ -191,7 +181,7 @@ class Program
 
         tableHelper.WaitForTableRowData(record.FirstName, record.LastName, record.UpdatedSalary);
 
-        SaveScreenshot(driver, screenshotsDir, $"12_row_updated_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"12_row_updated_{record.FirstName}_{record.LastName}");
 
         Console.WriteLine($"Row for {record.FirstName} {record.LastName} was updated successfully.");
 
@@ -202,7 +192,7 @@ class Program
         tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
         Thread.Sleep(1500);
 
-        SaveScreenshot(driver, screenshotsDir, $"13_row_deleted_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"13_row_deleted_{record.FirstName}_{record.LastName}");
 
         Console.WriteLine($"Row for {record.FirstName} {record.LastName} was deleted successfully.");
 
@@ -222,7 +212,7 @@ class Program
         string screenshotPrefix,
         string message)
     {
-        SaveScreenshot(driver, screenshotsDir, $"{screenshotPrefix}_review_needed_{record.FirstName}_{record.LastName}");
+        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"{screenshotPrefix}_review_needed_{record.FirstName}_{record.LastName}");
 
         Console.WriteLine(message);
 
@@ -230,25 +220,12 @@ class Program
         {
             executor.CloseRegistrationForm();
             Thread.Sleep(1500);
-            SaveScreenshot(driver, screenshotsDir, $"{screenshotPrefix}_modal_closed_{record.FirstName}_{record.LastName}");
+            ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"{screenshotPrefix}_modal_closed_{record.FirstName}_{record.LastName}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Could not close modal: {ex.Message}");
         }
-    }
-
-    static void SaveScreenshot(IWebDriver driver, string folderPath, string fileName)
-    {
-        Thread.Sleep(1500);
-
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-        string fullPath = Path.Combine(folderPath, $"{fileName}_{timestamp}.png");
-
-        var screenshot = ((ITakesScreenshot)driver).GetScreenshot();
-        screenshot.SaveAsFile(fullPath);
-
-        Console.WriteLine($"Screenshot saved: {fullPath}");
     }
 
     static void CleanupAfterFailedEdit(
@@ -268,7 +245,7 @@ class Program
             tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
             Thread.Sleep(1500);
 
-            SaveScreenshot(driver, screenshotsDir, $"11_cleanup_deleted_{record.FirstName}_{record.LastName}");
+            ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"11_cleanup_deleted_{record.FirstName}_{record.LastName}");
 
             Console.WriteLine($"Cleanup completed for {record.FirstName} {record.LastName}");
         }
