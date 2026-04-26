@@ -1,7 +1,15 @@
+public class CsvReadResult
+{
+    public List<PersonRecord> Records { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+}
+
 public static class CsvReader
 {
-    public static List<PersonRecord> ReadData(string filePath)
+    public static CsvReadResult ReadData(string filePath)
     {
+        var result = new CsvReadResult();
+
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"CSV file not found: {filePath}");
@@ -11,15 +19,17 @@ public static class CsvReader
 
         if (lines.Length <= 1)
         {
-            return new List<PersonRecord>();
+            result.Warnings.Add("CSV file contains no data rows.");
+            return result;
         }
 
-        var records = new List<PersonRecord>();
-
-        foreach (var line in lines.Skip(1))
+        for (int i = 1; i < lines.Length; i++)
         {
+            string line = lines[i];
+
             if (string.IsNullOrWhiteSpace(line))
             {
+                result.Warnings.Add($"Line {i + 1}: empty row skipped.");
                 continue;
             }
 
@@ -27,7 +37,7 @@ public static class CsvReader
 
             if (parts.Length < 7)
             {
-                Console.WriteLine($"Skipping invalid CSV row: {line}");
+                result.Warnings.Add($"Line {i + 1}: row skipped because it has fewer than 7 columns.");
                 continue;
             }
 
@@ -42,9 +52,27 @@ public static class CsvReader
                 UpdatedSalary = parts[6].Trim()
             };
 
-            records.Add(record);
+            result.Records.Add(record);
         }
 
-        return records;
+        AddDuplicateEmailWarnings(result);
+
+        return result;
+    }
+
+    private static void AddDuplicateEmailWarnings(CsvReadResult result)
+    {
+        var duplicateEmails = result.Records
+            .Where(r => !string.IsNullOrWhiteSpace(r.Email))
+            .GroupBy(r => r.Email)
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        foreach (var group in duplicateEmails)
+        {
+            result.Warnings.Add(
+                $"Duplicate email found in CSV: {group.Key} appears {group.Count()} times."
+            );
+        }
     }
 }

@@ -18,11 +18,24 @@ class Program
             throw new Exception("Failed to deserialize test.json");
         }
 
-        var records = CsvReader.ReadData(scenario.DataFile);
+        var csvResult = CsvReader.ReadData(scenario.DataFile);
+        var records = csvResult.Records;
+        var csvWarnings = csvResult.Warnings;
 
         if (records.Count == 0)
         {
             throw new Exception("No records found in data.csv");
+        }
+
+        if (csvWarnings.Count > 0)
+        {
+            Console.WriteLine("CSV warnings:");
+            foreach (var warning in csvWarnings)
+            {
+                Console.WriteLine($"- {warning}");
+            }
+
+            Console.WriteLine();
         }
 
         //Screenshot Folder creation
@@ -62,6 +75,16 @@ class Program
             Console.WriteLine($"Successful records: {successfulRecords}");
             Console.WriteLine($"Records needing review: {reviewRecords}");
             Console.WriteLine($"Screenshots folder: {screenshotsDir}");
+            Console.WriteLine($"CSV warnings: {csvWarnings.Count}");
+
+            if (csvWarnings.Count > 0)
+            {
+                Console.WriteLine("CSV warning details:");
+                foreach (var warning in csvWarnings)
+                {
+                    Console.WriteLine($"- {warning}");
+                }
+            }
 
             Console.WriteLine("Processing finished.");
             Console.WriteLine("Press ENTER to close browser...");
@@ -174,20 +197,25 @@ class Program
                 return true;
 
             case "deleteRow":
+                int previousCount = tableHelper.CountValueOccurrences(record.Email);
+
                 executor.ClickDeleteButton(record.FirstName, record.LastName);
                 Thread.Sleep(1500);
+
+                record.PreviousEmailCount = previousCount;
+
                 return true;
 
             case "waitForTableRowDeletion":
-                tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
+                tableHelper.WaitForTableRowDeletion(record.Email, record.PreviousEmailCount);
                 Thread.Sleep(1500);
                 ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"10_row_deleted_{record.FirstName}_{record.LastName}");
                 return true;
 
             case "verifyRowDeleted":
-                if (tableHelper.IsTableRowDataPresent(record.FirstName, record.LastName))
+                if (tableHelper.CountValueOccurrences(record.Email) >= record.PreviousEmailCount)
                 {
-                    throw new Exception($"Row was not deleted: {record.FirstName} {record.LastName}");
+                    throw new Exception($"Row was not deleted: {record.Email}");
                 }
 
                 Console.WriteLine($"Row deleted verified: {record.FirstName} {record.LastName}");
@@ -228,112 +256,6 @@ class Program
         return true;
     }
 
-    static bool AddRecordFlow(
-        IWebDriver driver,
-        CommandExecutor executor,
-        TableHelper tableHelper,
-        string screenshotsDir,
-        PersonRecord record)
-    {
-        executor.OpenAddRecordModal();
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"01_add_clicked_{record.FirstName}_{record.LastName}");
-
-        executor.FillRegistrationForm(record);
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"02_form_filled_{record.FirstName}_{record.LastName}");
-
-        executor.SubmitRegistrationForm();
-        Thread.Sleep(2000);
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"03_form_submitted_{record.FirstName}_{record.LastName}");
-
-        if (HasInvalidForm(executor))
-        {
-            HandleInvalidForm(
-                executor,
-                driver,
-                screenshotsDir,
-                record,
-                "04_invalid_add",
-                $"Record for {record.FirstName} {record.LastName} needs to be reviewed."
-            );
-
-            return false;
-        }
-
-        tableHelper.WaitForTableRowData(record.FirstName, record.LastName);
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"06_row_added_{record.FirstName}_{record.LastName}");
-
-        Console.WriteLine($"Row for {record.FirstName} {record.LastName} was added successfully.");
-
-        return true;
-    }
-
-    static bool EditAndDeleteFlow(
-        IWebDriver driver,
-        CommandExecutor executor,
-        TableHelper tableHelper,
-        string screenshotsDir,
-        PersonRecord record)
-    {
-        Console.WriteLine($"Trying to click Edit for: {record.FirstName} {record.LastName}");
-
-        executor.ClickEditButton(record.FirstName, record.LastName);
-        Thread.Sleep(1500);
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"07_edit_clicked_{record.FirstName}_{record.LastName}");
-
-        executor.FillRegistrationForm(new PersonRecord
-        {
-            FirstName = record.FirstName,
-            LastName = record.LastName,
-            Email = record.Email,
-            Age = record.Age,
-            Salary = record.UpdatedSalary,
-            Department = record.Department
-        });
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"08_salary_updated_{record.FirstName}_{record.LastName}");
-
-        executor.SubmitRegistrationForm();
-        Thread.Sleep(2000);
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"09_edit_submitted_{record.FirstName}_{record.LastName}");
-
-        if (HasInvalidForm(executor))
-        {
-            HandleInvalidForm(
-                executor,
-                driver,
-                screenshotsDir,
-                record,
-                "10_invalid_edit",
-                $"Updated values for {record.FirstName} {record.LastName} need to be reviewed."
-            );
-
-            CleanupAfterFailedEdit(driver, executor, tableHelper, screenshotsDir, record);
-            return false;
-        }
-
-        tableHelper.WaitForTableRowData(record.FirstName, record.LastName, record.UpdatedSalary);
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"12_row_updated_{record.FirstName}_{record.LastName}");
-
-        Console.WriteLine($"Row for {record.FirstName} {record.LastName} was updated successfully.");
-
-        // DELETE
-        executor.ClickDeleteButton(record.FirstName, record.LastName);
-        Thread.Sleep(1500);
-
-        tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
-        Thread.Sleep(1500);
-
-        ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"13_row_deleted_{record.FirstName}_{record.LastName}");
-
-        Console.WriteLine($"Row for {record.FirstName} {record.LastName} was deleted successfully.");
-
-        return true;
-    }
 
     static bool HasInvalidForm(CommandExecutor executor)
     {
@@ -375,10 +297,12 @@ class Program
         {
             Console.WriteLine($"Cleaning up row after failed edit: {record.FirstName} {record.LastName}");
 
+            int previousCount = tableHelper.CountValueOccurrences(record.Email);
+
             executor.ClickDeleteButton(record.FirstName, record.LastName);
             Thread.Sleep(1500);
 
-            tableHelper.WaitForTableRowDeletion(record.FirstName, record.LastName);
+            tableHelper.WaitForTableRowDeletion(record.Email, previousCount);
             Thread.Sleep(1500);
 
             ScreenshotService.SaveScreenshot(driver, screenshotsDir, $"11_cleanup_deleted_{record.FirstName}_{record.LastName}");

@@ -21,4 +21,5 @@ public class PersonRecord
     public string Salary { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string UpdatedSalary { get; set; } = string.Empty;
+    public int PreviousEmailCount { get; set; }
 }

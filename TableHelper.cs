@@ -22,13 +22,25 @@ public class TableHelper
         return pageText.Contains(firstName) && pageText.Contains(lastName);
     }
 
-    private bool IsRowPresent(string firstName, string lastName, string salary)
+    private bool IsRowPresent(string firstName, string lastName, string value)
     {
         string pageText = GetPageText();
 
         return pageText.Contains(firstName)
             && pageText.Contains(lastName)
-            && pageText.Contains(salary);
+            && pageText.Contains(value);
+    }
+
+    public int CountValueOccurrences(string value)
+    {
+        string pageText = GetPageText();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        return pageText.Split(value).Length - 1;
     }
 
     public void WaitForTableRowData(string firstName, string lastName, int timeoutSeconds = 10)
@@ -38,11 +50,18 @@ public class TableHelper
         wait.Until(driver => IsRowPresent(firstName, lastName));
     }
 
-    public void WaitForTableRowData(string firstName, string lastName, string salary, int timeoutSeconds = 10)
+    public void WaitForTableRowData(string firstName, string lastName, string value, int timeoutSeconds = 10)
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
 
-        wait.Until(driver => IsRowPresent(firstName, lastName, salary));
+        wait.Until(driver => IsRowPresent(firstName, lastName, value));
+    }
+
+    public void WaitForTableRowDeletion(string uniqueValue, int previousCount, int timeoutSeconds = 10)
+    {
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
+
+        wait.Until(driver => CountValueOccurrences(uniqueValue) < previousCount);
     }
 
     public bool IsTableRowDataPresent(string firstName, string lastName)
@@ -50,22 +69,14 @@ public class TableHelper
         return IsRowPresent(firstName, lastName);
     }
 
-    public bool IsTableRowDataPresent(string firstName, string lastName, string salary)
+    public bool IsTableRowDataPresent(string firstName, string lastName, string value)
     {
-        return IsRowPresent(firstName, lastName, salary);
-    }
-
-
-    public void WaitForTableRowDeletion(string firstName, string lastName, int timeoutSeconds = 10)
-    {
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(timeoutSeconds));
-
-        wait.Until(driver => !IsRowPresent(firstName, lastName));
+        return IsRowPresent(firstName, lastName, value);
     }
 
     public void PrintCurrentPageText()
     {
         Console.WriteLine("Current page text:");
         Console.WriteLine(GetPageText());
-    }    
+    }
 }
