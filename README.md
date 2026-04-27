@@ -1,29 +1,36 @@
-📘 Selenium .NET JSON-Driven Automation
+# 📘 Selenium .NET JSON-Driven Automation
 
-📌 Overview
+## 📌 Overview
 
 This project is a .NET Console application that automates a web table using Selenium WebDriver.
 
 It:
 
-Executes steps defined in a JSON script
-Uses CSV data for test input
-Performs add → edit → delete operations
-Captures screenshots after each step
-Handles invalid data and edge cases
+- Executes steps defined in a JSON script  
+- Uses CSV data for test input  
+- Performs add → edit → delete operations  
+- Captures screenshots after each step  
+- Handles invalid data and edge cases  
 
-⚙️ Tech Stack
-.NET (C#)
-Selenium WebDriver
-ChromeDriver
-JSON (System.Text.Json)
-CSV
+---
 
-📄 Test Configuration
-JSON (test.json)
+## ⚙️ Tech Stack
+
+- .NET (C#)  
+- Selenium WebDriver  
+- ChromeDriver  
+- JSON (System.Text.Json)  
+- CSV  
+
+---
+
+## 📄 Test Configuration
+
+### JSON (test.json)
 
 Defines the workflow:
 
+```json
 {
   "url": "https://demoqa.com/webtables",
   "dataFile": "data.csv",
@@ -39,72 +46,158 @@ Defines the workflow:
     { "action": "verifyRowDeleted" }
   ]
 }
+```
+---
 
-CSV (data.csv)
+### CSV (`data.csv`)
 
-Each row is a test case:
-
-FirstName,LastName,Email,Age,Salary,Department,UpdatedSalary
-John,Smith,john.smith@test.com,30,5000,QA,7000
-
-🚀 Execution Flow
-
-For each record:
-
-Add record
-Validate insertion
-Edit salary
-Validate update
-Delete record
-Validate deletion
-
-🧩 Custom Commands
-WaitForTableRowData
-
-Waits until a row appears:
-
-WaitForTableRowData(firstName, lastName)
-WaitForTableRowData(firstName, lastName, value)
-WaitForTableRowDeletion
-
-Waits until a row is removed.
-
-✔ Uses occurrence counting to handle duplicates safely.
-
-⚠️ Error Handling
-Invalid Add → screenshot + skip
-Invalid Edit → screenshot + cleanup (delete row)
-Execution continues for next records
-
-🔁 Duplicate Handling
-Duplicate emails in CSV → warning
-Deletion uses count-based validation, so duplicates don’t break the test
-
-📸 Screenshots
-Taken after each step
-Stored in timestamped folder:
-Screenshots/20260426_235150/
-File format:
-20260426_235155_01_add_clicked_John_Smith.png
-
-📊 Summary Output
+Each row in the CSV file represents one test case.
 
 Example:
 
+```csv
+FirstName,LastName,Email,Age,Salary,Department,UpdatedSalary
+John,Smith,john.smith@test.com,30,5000,QA,7000
+Emma,Johnson,emma.johnson@test.com,28,6000,HR,8000
+```
+
+---
+
+## 🚀 Execution Flow
+
+For each record from the CSV file, the application performs the following steps:
+
+1. Add a new record
+2. Wait for the row to appear in the table
+3. Verify that the inserted row exists
+4. Edit the salary value
+5. Wait for the updated row data
+6. Verify that the updated salary is displayed
+7. Delete the row
+8. Wait for the row deletion
+9. Verify that the row no longer exists
+
+---
+
+## 🧩 Custom Commands
+
+### `WaitForTableRowData`
+
+Waits until the expected row data is visible in the table.
+
+Examples:
+
+```csharp
+WaitForTableRowData(firstName, lastName);
+WaitForTableRowData(firstName, lastName, value);
+```
+
+---
+
+### `WaitForTableRowDeletion`
+
+Waits until the expected row is removed from the table.
+
+The deletion check uses occurrence counting to handle duplicate records more safely.
+
+---
+
+## ⚠️ Error Handling
+
+The application handles invalid data without stopping the whole execution.
+
+- Invalid data during Add step → screenshot is saved, the record is marked for review, and the next record is processed
+- Invalid data during Edit step → screenshot is saved, the modal is closed, the created row is cleaned up, and the next record is processed
+- Malformed CSV rows → warning is shown in the console and included in the final summary
+
+---
+
+## 🔁 Duplicate Handling
+
+Duplicate emails in the CSV file are detected during CSV parsing.
+
+The application prints a warning, but the execution continues.
+
+Deletion validation uses occurrence counting, so duplicate records do not automatically break the test flow.
+
+---
+
+## 📸 Screenshots
+
+Screenshots are saved after the main execution steps.
+
+They are stored in a timestamped folder:
+
+```text
+Screenshots/20260426_235150/
+```
+
+Screenshot file names start with a timestamp so they can be sorted chronologically:
+
+```text
+20260426_235155_712_01_add_clicked_John_Smith.png
+```
+
+---
+
+## 📊 Summary Output
+
+At the end of the run, the application prints a summary.
+
+Example:
+
+```text
+Run summary:
 Total records: 8
 Successful records: 3
 Records needing review: 5
 CSV warnings: 1
+Screenshots folder: D:\InfoTrack_Test Task\SeleniumRunner\Screenshots\20260426_235150
+```
 
-▶️ Run the Project
+---
+
+## ▶️ Run the Project
+
+Restore dependencies:
+
+```bash
+dotnet restore
+```
+
+Run the application:
+
+```bash
 dotnet run
+```
 
-✅ Result
-JSON-driven test execution
-Data-driven testing via CSV
-Robust validation & error handling
-Full traceability with screenshots
+---
 
-💡 Notes
-Each test record should ideally have a unique email
-Duplicate handling is supported but may affect traceability
+## 📋 Prerequisites
+
+- .NET SDK installed
+- Google Chrome installed
+- Internet connection
+
+---
+
+## ✅ Result
+
+The solution provides:
+
+- JSON-driven test execution
+- CSV-based test data
+- Add, edit, and delete automation
+- Custom wait commands
+- Screenshot logging
+- Invalid data handling
+- Duplicate data handling
+- Final execution summary
+
+---
+
+## 💡 Notes
+
+- Each test record should ideally have a unique email address
+- Duplicate records are supported, but unique test data is easier to review
+- Screenshots are not committed to the repository

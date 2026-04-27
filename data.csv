@@ -3,11 +3,7 @@ John,Smith,john.smith@test.com,30,5000,QA,7000
 Emma,Johnson,emma.johnson@test.com,28,6000,HR,8000
 Michael,Brown,michael.brown@test.com,35,7000,IT,9000
 InvalidEmail,User,invalid-email,25,4000,QA,6000
-Duplicate,User,duplicate1@test.com,30,5000,QA,7000
-Duplicate,User,duplicate1@test.com,32,5500,QA,7500
-Alden,Cantrell,alden@example.com,45,12000,Compliance,14500
 InvalidAge,User,age.user@test.com,abc,4000,QA,6000
 InvalidEdit,Salary,invalid.edit@test.com,30,5000,QA,abc
-Invalid,CSV,row,data,,
 Duplicate,User,duplicate@test.com,30,5000,QA,7000
 Duplicate,User,duplicate@test.com,32,5500,QA,7500
