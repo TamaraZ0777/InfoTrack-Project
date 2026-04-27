@@ -132,8 +132,8 @@ They are stored in a timestamped folder:
 Screenshots/20260426_235150/
 ```
 
-Screenshot file names start with a timestamp so they can be sorted chronologically.
-Screenshot file names contain the step name and the first name and the last name of the record being processed:
+- Screenshot file names start with a timestamp so they can be sorted chronologically.
+- Screenshot file names contain the step name and the first name and the last name of the record processed:
 
 ```text
 20260426_235155_712_01_add_clicked_John_Smith.png
@@ -153,7 +153,8 @@ Total records: 8
 Successful records: 3
 Records needing review: 5
 Screenshots folder: D:\InfoTrack_Test Task\SeleniumRunner\Screenshots\20260426_235150
-CSV CSV warning details:
+CSV warnings: 1
+CSV warning details:
 - Duplicate email found in CSV: duplicate@test.com appears 2 times.
 ```
 
