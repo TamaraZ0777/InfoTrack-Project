@@ -118,13 +118,13 @@ Duplicate emails in the CSV file are detected during CSV parsing.
 
 The application prints a warning, but the execution continues.
 
-Deletion validation uses occurrence counting, so duplicate records do not automatically break the test flow.
+Deletion validation uses occurrence counting, so duplicate records already available in the table do not break the test flow.
 
 ---
 
 ## 📸 Screenshots
 
-Screenshots are saved after the main execution steps.
+Screenshots are saved after each of the main execution steps.
 
 They are stored in a timestamped folder:
 
@@ -132,7 +132,8 @@ They are stored in a timestamped folder:
 Screenshots/20260426_235150/
 ```
 
-Screenshot file names start with a timestamp so they can be sorted chronologically:
+Screenshot file names start with a timestamp so they can be sorted chronologically.
+Screenshot file names contain the step name and the first name and the last name of the record being processed:
 
 ```text
 20260426_235155_712_01_add_clicked_John_Smith.png
@@ -151,8 +152,9 @@ Run summary:
 Total records: 8
 Successful records: 3
 Records needing review: 5
-CSV warnings: 1
 Screenshots folder: D:\InfoTrack_Test Task\SeleniumRunner\Screenshots\20260426_235150
+CSV CSV warning details:
+- Duplicate email found in CSV: duplicate@test.com appears 2 times.
 ```
 
 ---
@@ -198,6 +200,9 @@ The solution provides:
 
 ## 💡 Notes
 
-- Each test record should ideally have a unique email address
+- Each test record should ideally have a unique email address, but the requirement needs confirmation depending on the test goals
 - Duplicate records are supported, but unique test data is easier to review
+- CSV warnings (e.g. duplicate emails) are shown in the console
+- Screenshots are saved automatically during execution
 - Screenshots are not committed to the repository
+- Based on the observed behaviour and the implemented logic, the webpage table is not expected to have more than 10 records
